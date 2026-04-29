@@ -499,7 +499,7 @@
 /* —— Composer —— */
 .app__composer {
   flex-shrink: 0;
-  padding: 0.85rem 1.25rem 0.5rem;
+  padding: 0.85rem 1.25rem 1.25rem;
   box-sizing: border-box;
   width: 100%;
   background: var(--composer-bg);
@@ -1089,10 +1089,10 @@
 
 .app__briefFooter {
   flex-shrink: 0;
-  padding: 0.85rem 1.25rem 0.85rem;
+  padding: 0.85rem 1.25rem 1.25rem;
   border-top: 1px solid var(--border-subtle);
   background: var(--brief-footer-bg);
-  height: 72px;
+  box-sizing: border-box;
 }
 
 /* —— Buttons —— */
