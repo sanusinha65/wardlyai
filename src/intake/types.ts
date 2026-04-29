@@ -9,6 +9,7 @@ export interface Message {
 
 export type IntakeStep =
   | 'welcome'
+  | 'personal_info'
   | 'cc'
   | 'onset'
   | 'duration'
@@ -27,6 +28,20 @@ export type IntakeStep =
   | 'complete'
 
 export type ChiefComplaintTheme = 'resp' | 'cardiac' | 'neuro' | 'gi' | 'msk' | 'derm' | 'general'
+
+/** Patient identifiers / preamble for the clinical one-liner */
+export interface Demographics {
+  /** Optional free-form name or initials. Empty string when not provided. */
+  name: string
+  /** Raw text the patient gave for age (preserved for the brief). */
+  ageRaw: string
+  /** Parsed integer age in years, or null when we could not extract one. */
+  ageNumber: number | null
+  /** Canonicalized sex/gender label ('male' | 'female' | 'non-binary' | 'other' | ''). */
+  sex: string
+  /** Original sex/gender phrase the patient typed (used as fallback in the brief). */
+  sexRaw: string
+}
 
 /** HPI line items (filled incrementally; empty strings = not yet captured) */
 export interface HpiState {
@@ -52,6 +67,7 @@ export interface RosLine {
 }
 
 export interface IntakeState {
+  demographics: Demographics
   hpi: HpiState
   redFlags: string
   /** Focused and general review answers, keyed loosely by label */
@@ -71,6 +87,7 @@ export interface ClinicalBrief {
 
 /** Incremental brief shown in the right panel while the intake is in progress */
 export interface LiveBrief {
+  demographics: Demographics | null
   cc: string | null
   hpiFragments: {
     onset: string | null
@@ -96,6 +113,7 @@ export interface IntakeSession {
 
 export const INTAKE_STEPS: IntakeStep[] = [
   'welcome',
+  'personal_info',
   'cc',
   'onset',
   'duration',
@@ -120,6 +138,7 @@ export function stepIndex(s: IntakeStep): number {
 
 export const STEP_LABEL: Record<IntakeStep, string> = {
   welcome: 'Start',
+  personal_info: 'Patient details',
   cc: 'Chief complaint',
   onset: 'Onset',
   duration: 'Duration',

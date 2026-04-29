@@ -2,6 +2,7 @@ import type { IntakeState, IntakeStep, LiveBrief } from './types'
 
 export function createEmptyLiveBrief(): LiveBrief {
   return {
+    demographics: null,
     cc: null,
     hpiFragments: {
       onset: null,
@@ -45,6 +46,12 @@ export function buildLiveBrief(
   }
 
   switch (justCompletedStep) {
+    case 'personal_info': {
+      const d = intake.demographics
+      const hasAny = Boolean(d.name || d.ageNumber != null || d.sex || d.ageRaw || d.sexRaw)
+      next.demographics = hasAny ? { ...d } : null
+      break
+    }
     case 'cc':
       next.cc = intake.hpi.chiefComplaint.trim() || null
       break

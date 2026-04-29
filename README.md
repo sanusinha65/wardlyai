@@ -2,13 +2,15 @@
 
 A **web chat** simulation that runs a **pre-visit clinical intake** and produces a **clinician-facing brief** with:
 
+- **Patient demographics** — name (optional), age, and sex/gender captured up-front; rendered as a chip in the brief panel and as the standard one-liner lead in the HPI ("Patient is a 34-year-old female presenting with…")
 - **CC** — chief complaint
 - **HPI** — history of present illness (narrative from the gathered fields)
 - **ROS** — review of systems (grouped by system with positives/negatives as elicited)
 - **Live brief** — CC / HPI / ROS panels **update as you chat** (before intake completes)
 - **Clinical insights** — rule-based urgency, differentials, and workup reminders (after chief complaint is captured)
 - **Voice input** — Web Speech API: mic asks for **microphone permission** first; **Stop** ends recognition; language via `VITE_SPEECH_LANG` or browser locale
-- **Gemini (optional)** — after intake completes, open **Insights** and click **Generate Gemini insights** if you set `VITE_GEMINI_API_KEY` (free tier via [Google AI Studio](https://aistudio.google.com/))
+- **Gemini (optional)** — when `VITE_GEMINI_API_KEY` is set (free tier via [Google AI Studio](https://aistudio.google.com/)), the **Insights** tab auto-generates a supplementary AI bullet list once the brief is complete (with a manual *Regenerate* control)
+- **Export** — copy the full brief to clipboard or download it as a `.txt` file from the right panel footer
 
 Formal exercise requirements are summarized in [ASSIGNMENT_REQUIREMENTS.md](ASSIGNMENT_REQUIREMENTS.md).
 

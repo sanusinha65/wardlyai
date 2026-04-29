@@ -6,6 +6,7 @@ import { INTAKE_STEPS } from './intake/types'
  * Order: cc → onset → duration → … → wrap_up
  */
 export const RESPIRATORY_DEMO_REPLIES: string[] = [
+  'Jane K, 34, female.',
   'A dry cough, sore throat, and low fever for a few days.',
   'It started about 3 days ago — I woke up with a scratchy throat, cough came the same day.',
   'It’s been about 3 days now; worse in the evening.',

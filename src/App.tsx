@@ -25,6 +25,16 @@ function speechRecognitionLang(): string {
 /** Milliseconds between each character for the latest agent message */
 const AGENT_TYPING_CHAR_MS = 16
 
+/** Brief panel resize bounds (desktop). Persisted to localStorage. */
+const BRIEF_MIN_PX = 320
+const BRIEF_MAX_PX = 720
+const BRIEF_DEFAULT_PX = 400
+const BRIEF_WIDTH_KEY = 'wardly:briefWidthPx'
+
+/** Auto-retry Gemini analysis a couple of times before silently giving up. */
+const GEMINI_MAX_ATTEMPTS = 3
+const GEMINI_RETRY_BASE_MS = 800
+
 type BriefTab = 'cc' | 'hpi' | 'ros' | 'insights'
 
 function usePrefersReducedMotion(): boolean {
@@ -76,6 +86,24 @@ function AgentTypingContent({ content, animate }: { content: string; animate: bo
 function statusLabel(s: IntakeSession): string {
   if (s.step === 'complete' || s.complete) return 'Complete'
   return STEP_LABEL[s.step] ?? s.step
+}
+
+/** Compact "34F • Jane K." style label for the brief header chip. */
+function formatDemographicsChip(d: {
+  name: string
+  ageNumber: number | null
+  ageRaw: string
+  sex: string
+  sexRaw: string
+}): string | null {
+  const sexLetter =
+    d.sex === 'male' ? 'M' : d.sex === 'female' ? 'F' : d.sex === 'non-binary' ? 'NB' : ''
+  const ageStr = d.ageNumber != null ? `${d.ageNumber}` : d.ageRaw || ''
+  const head = [ageStr, sexLetter].filter(Boolean).join('')
+  const fallbackSex = !sexLetter && d.sexRaw ? d.sexRaw : ''
+  const headFallback = head || (ageStr && fallbackSex ? `${ageStr} ${fallbackSex}` : ageStr || fallbackSex)
+  if (!headFallback && !d.name) return null
+  return [headFallback, d.name].filter(Boolean).join(' • ')
 }
 
 function titleCaseLabel(s: string): string {
@@ -171,6 +199,19 @@ const Icons = {
       <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
     </svg>
   ),
+  Download: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  ),
+  User: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
   Stop: () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <rect x="6" y="6" width="12" height="12" rx="1" />
@@ -199,13 +240,22 @@ function App() {
   const [voiceError, setVoiceError] = useState<string | null>(null)
   const [geminiAiText, setGeminiAiText] = useState<string | null>(null)
   const [geminiAiLoading, setGeminiAiLoading] = useState(false)
-  const [geminiAiError, setGeminiAiError] = useState<string | null>(null)
   const [voiceSupported] = useState(
     () =>
       typeof window !== 'undefined' &&
       ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window),
   )
+  const [briefWidth, setBriefWidth] = useState<number>(() => {
+    if (typeof window === 'undefined') return BRIEF_DEFAULT_PX
+    const stored = window.localStorage?.getItem(BRIEF_WIDTH_KEY)
+    const n = stored ? Number.parseInt(stored, 10) : NaN
+    if (Number.isFinite(n)) return Math.min(BRIEF_MAX_PX, Math.max(BRIEF_MIN_PX, n))
+    return BRIEF_DEFAULT_PX
+  })
+  const [isResizing, setIsResizing] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const messagesRef = useRef<HTMLDivElement>(null)
+  const stickToBottomRef = useRef(true)
   const inputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const speechFinalRef = useRef('')
@@ -227,9 +277,83 @@ function App() {
     setInput('')
   }, [input])
 
+  const onMessagesScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight
+    stickToBottomRef.current = distance < 96
+  }, [])
+
+  // Scroll-to-bottom that keeps following the typing animation while the user
+  // hasn't manually scrolled away. The previous one-shot smooth scroll fired
+  // before the agent bubble had finished growing, so the latest reply ended up
+  // off-screen.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [session.messages])
+    const el = messagesRef.current
+    const sentinel = bottomRef.current
+    if (!el || !sentinel) return
+    if (!stickToBottomRef.current) return
+
+    sentinel.scrollIntoView({ behavior: 'auto' })
+    const start = Date.now()
+    const id = window.setInterval(() => {
+      if (!stickToBottomRef.current || Date.now() - start > 6000) {
+        window.clearInterval(id)
+        return
+      }
+      sentinel.scrollIntoView({ behavior: 'auto' })
+    }, 80)
+    return () => window.clearInterval(id)
+  }, [session.messages.length])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage?.setItem(BRIEF_WIDTH_KEY, String(Math.round(briefWidth)))
+    } catch {
+      /* ignore storage failures */
+    }
+  }, [briefWidth])
+
+  const onSplitterPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (typeof window === 'undefined') return
+      if (window.matchMedia('(max-width: 1024px)').matches) return
+      e.preventDefault()
+      const startX = e.clientX
+      const startWidth = briefWidth
+      setIsResizing(true)
+      document.body.style.userSelect = 'none'
+      document.body.style.cursor = 'col-resize'
+
+      const onMove = (ev: PointerEvent) => {
+        const dx = startX - ev.clientX
+        const next = Math.max(BRIEF_MIN_PX, Math.min(BRIEF_MAX_PX, startWidth + dx))
+        setBriefWidth(next)
+      }
+      const onUp = () => {
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+        window.removeEventListener('pointercancel', onUp)
+        document.body.style.userSelect = ''
+        document.body.style.cursor = ''
+        setIsResizing(false)
+      }
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+      window.addEventListener('pointercancel', onUp)
+    },
+    [briefWidth],
+  )
+
+  const onSplitterKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+    e.preventDefault()
+    const step = e.shiftKey ? 48 : 16
+    setBriefWidth((w) => {
+      const dir = e.key === 'ArrowLeft' ? 1 : -1
+      return Math.max(BRIEF_MIN_PX, Math.min(BRIEF_MAX_PX, w + dir * step))
+    })
+  }, [])
 
   useEffect(() => {
     if (!session.complete) {
@@ -242,17 +366,31 @@ function App() {
       const signal = opts?.signal
       if (!session.brief || !getGeminiApiKey()) return
       setGeminiAiLoading(true)
-      setGeminiAiError(null)
-      setGeminiAiText(null)
-      try {
-        const text = await generateGeminiClinicalInsights(session.brief)
+
+      // Retry transient failures up to GEMINI_MAX_ATTEMPTS, then silently fall
+      // back: keep any previously successful text on screen, otherwise leave
+      // the AI panel hidden and let rule-based insights stand on their own.
+      for (let attempt = 1; attempt <= GEMINI_MAX_ATTEMPTS; attempt++) {
         if (signal?.aborted) return
-        setGeminiAiText(text)
-      } catch (e) {
-        if (signal?.aborted) return
-        setGeminiAiError(e instanceof Error ? e.message : 'Gemini request failed')
-      } finally {
-        if (!signal?.aborted) setGeminiAiLoading(false)
+        try {
+          const text = await generateGeminiClinicalInsights(session.brief)
+          if (signal?.aborted) return
+          setGeminiAiText(text)
+          setGeminiAiLoading(false)
+          return
+        } catch (e) {
+          if (signal?.aborted) return
+          if (attempt < GEMINI_MAX_ATTEMPTS) {
+            await new Promise((res) => window.setTimeout(res, GEMINI_RETRY_BASE_MS * attempt))
+            continue
+          }
+          // Final attempt failed — keep prior text (if any) so the user still
+          // sees the last good analysis. Do NOT surface the raw API error.
+          if (import.meta.env.DEV) {
+            console.warn('[gemini] giving up after retries:', e)
+          }
+          setGeminiAiLoading(false)
+        }
       }
     },
     [session.brief],
@@ -394,7 +532,6 @@ function App() {
     setCopyStatus('Copy to EHR')
     setVoiceError(null)
     setGeminiAiText(null)
-    setGeminiAiError(null)
     setGeminiAiLoading(false)
     try {
       recognitionRef.current?.abort()
@@ -409,12 +546,33 @@ function App() {
     if (t) setInput(t)
   }
 
+  const briefPlainText = useMemo(() => {
+    if (!session.brief) return ''
+    const d = session.intake.demographics
+    const chip = formatDemographicsChip(d)
+    const header = chip ? `Patient: ${chip}\n\n` : ''
+    return `${header}CC: ${session.brief.cc}\n\nHPI: ${session.brief.hpi}\n\nROS: ${session.brief.ros}`
+  }, [session.brief, session.intake.demographics])
+
   const onCopyBrief = () => {
-    if (!session.brief) return
-    const text = `CC: ${session.brief.cc}\n\nHPI: ${session.brief.hpi}\n\nROS: ${session.brief.ros}`
-    void navigator.clipboard.writeText(text)
+    if (!briefPlainText) return
+    void navigator.clipboard.writeText(briefPlainText)
     setCopyStatus('Copied!')
     setTimeout(() => setCopyStatus('Copy to EHR'), 2000)
+  }
+
+  const onDownloadBrief = () => {
+    if (!briefPlainText) return
+    const blob = new Blob([briefPlainText], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const stamp = new Date().toISOString().slice(0, 10)
+    a.href = url
+    a.download = `wardly-pre-visit-brief-${stamp}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   const firstAgentId = session.messages.find((m) => m.role === 'agent')?.id
@@ -422,6 +580,7 @@ function App() {
   const segments = segmentStates(session.step, session.complete)
   const showFinalBrief = Boolean(session.brief)
   const lb = session.liveBrief
+  const demographicsChip = formatDemographicsChip(session.intake.demographics)
 
   return (
     <div className="app">
@@ -479,9 +638,12 @@ function App() {
         </span>
       </div>
 
-      <div className="app__layout">
+      <div
+        className={`app__layout${isResizing ? ' app__layout--resizing' : ''}`}
+        style={{ ['--brief-w' as string]: `${briefWidth}px` }}
+      >
         <section className="app__chat" aria-label="Intake conversation">
-          <div className="app__messages">
+          <div className="app__messages" ref={messagesRef} onScroll={onMessagesScroll}>
             {session.messages.map((m) => (
               <article key={m.id} className={`bubble bubble--${m.role}`}>
                 {m.role === 'agent' ? (
@@ -525,18 +687,6 @@ function App() {
                 )}
               </article>
             ))}
-            {!session.complete && session.messages.length === 0 && (
-              <div className="app__presence" role="status">
-                <span className="app__presenceFlair" aria-hidden />
-                <div className="app__presenceInner">
-                  <p className="app__presenceLead">Your conversation starts here</p>
-                  <p className="app__presenceHint">
-                    Answer in the bar below with text or voice—the structured brief on the right updates as you chat.
-                    Nothing is transmitted until you send each message.
-                  </p>
-                </div>
-              </div>
-            )}
             <div ref={bottomRef} />
           </div>
 
@@ -602,15 +752,7 @@ function App() {
               <p className="app__composerHint app__composerHint--warn" role="status">
                 Voice typing needs a browser with Web Speech API (e.g. Chrome or Edge on desktop).
               </p>
-            ) : (
-              <p className="app__composerHint" role="status">
-                Speech language: <strong>{speechLangLabel}</strong>
-                {import.meta.env.VITE_SPEECH_LANG
-                  ? ' (from VITE_SPEECH_LANG)'
-                  : ' (browser default—set VITE_SPEECH_LANG to override, e.g. en-IN, hi-IN)'}
-                . Chrome sends audio to Google for recognition—use HTTPS or localhost.
-              </p>
-            )}
+            ) : null}
             {voiceError ? (
               <p className="app__composerHint app__composerHint--error" role="alert">
                 {voiceError}
@@ -619,10 +761,31 @@ function App() {
           </div>
         </section>
 
+        <div
+          className="app__splitter"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize the brief panel"
+          aria-valuemin={BRIEF_MIN_PX}
+          aria-valuemax={BRIEF_MAX_PX}
+          aria-valuenow={Math.round(briefWidth)}
+          tabIndex={0}
+          onPointerDown={onSplitterPointerDown}
+          onKeyDown={onSplitterKeyDown}
+        >
+          <span className="app__splitterGrip" aria-hidden />
+        </div>
+
         <aside className="app__brief" aria-label="Structured clinical brief">
           <div className="app__briefHead">
             <div className="app__briefTitleRow">
               <h2 className="app__briefTitle">Structured Visit Brief</h2>
+              {demographicsChip ? (
+                <span className="app__patientChip" aria-label={`Patient demographics: ${demographicsChip}`}>
+                  <Icons.User />
+                  <span className="app__patientChipText">{demographicsChip}</span>
+                </span>
+              ) : null}
             </div>
             <p className="app__briefSub">Auto-generates as you chat</p>
             <div className="app__briefTabs" role="tablist" aria-label="Brief sections">
@@ -641,7 +804,7 @@ function App() {
                     Boolean(
                       session.brief &&
                       getGeminiApiKey() &&
-                      (geminiAiText || geminiAiLoading || geminiAiError),
+                      (geminiAiText || geminiAiLoading),
                     )
                     : id === 'cc'
                       ? Boolean(session.brief?.cc || lb.cc)
@@ -673,6 +836,12 @@ function App() {
               {briefTab === 'cc' && (
                 <div className="briefCard briefCard--animate" style={{ animationDelay: '0ms' }}>
                   <h3 className="briefCard__h">Chief complaint</h3>
+                  {demographicsChip ? (
+                    <p className="briefCard__demographics">
+                      <span className="briefCard__demographicsLabel">Patient</span>{' '}
+                      {demographicsChip}
+                    </p>
+                  ) : null}
                   {showFinalBrief && session.brief ? (
                     <p className="briefCard__p">{session.brief.cc}</p>
                   ) : lb.cc ? (
@@ -798,7 +967,7 @@ function App() {
               )}
               {briefTab === 'insights' && (
                 <div className="insightsPanel">
-                  {session.brief && getGeminiApiKey() ? (
+                  {session.brief && getGeminiApiKey() && (geminiAiLoading || geminiAiText) ? (
                     <div className="briefCard briefCard--gemini briefCard--animate">
                       <h3 className="briefCard__h">AI analysis</h3>
                       <p className="briefCard__p briefCard__p--muted geminiDisclaimer">
@@ -814,14 +983,6 @@ function App() {
                         <p className="aiAnalysisStatus aiAnalysisStatus--ok" role="status">
                           Analysis completed successfully.
                         </p>
-                      ) : null}
-                      {!geminiAiLoading && geminiAiError ? (
-                        <p className="aiAnalysisStatus aiAnalysisStatus--err" role="status">
-                          Analysis did not complete.
-                        </p>
-                      ) : null}
-                      {geminiAiError ? (
-                        <p className="briefCard__p briefCard__p--muted">{geminiAiError}</p>
                       ) : null}
                       {geminiAiText ? (
                         <div className="geminiBody">
@@ -843,7 +1004,7 @@ function App() {
                         {geminiAiLoading ? 'Running…' : 'Regenerate analysis'}
                       </button>
                     </div>
-                  ) : session.brief ? (
+                  ) : session.brief && !getGeminiApiKey() ? (
                     <p className="insightsGeminiHint">
                       Add <code className="insightsGeminiHint__code">VITE_GEMINI_API_KEY</code> in{' '}
                       <code className="insightsGeminiHint__code">.env</code> (Google AI Studio) to enable automatic AI
@@ -882,14 +1043,25 @@ function App() {
           </div>
 
           <div className="app__briefFooter">
-            <button
-              type="button"
-              className="btn btn--ehr"
-              onClick={onCopyBrief}
-              disabled={!session.brief}
-            >
-              <Icons.Ehr /> {copyStatus}
-            </button>
+            <div className="app__briefFooterActions">
+              <button
+                type="button"
+                className="btn btn--ehr"
+                onClick={onCopyBrief}
+                disabled={!session.brief}
+              >
+                <Icons.Ehr /> {copyStatus}
+              </button>
+              <button
+                type="button"
+                className="btn btn--outline btn--download"
+                onClick={onDownloadBrief}
+                disabled={!session.brief}
+                title="Download the brief as a .txt file"
+              >
+                <Icons.Download /> Download
+              </button>
+            </div>
           </div>
         </aside>
       </div>

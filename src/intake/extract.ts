@@ -1,6 +1,94 @@
-import type { ChiefComplaintTheme, HpiState, IntakeState, IntakeStep, RosLine } from './types'
+import type {
+    ChiefComplaintTheme,
+    Demographics,
+    HpiState,
+    IntakeState,
+    IntakeStep,
+    RosLine,
+} from './types';
 
 const lower = (s: string) => s.toLowerCase()
+
+/**
+ * Pull the first plausible age (1–119) from free text, ignoring obvious noise like
+ * times of day or zip codes. Returns null when no plausible match is found.
+ */
+function extractAgeYears(text: string): { ageNumber: number | null; ageRaw: string } {
+  const t = text.trim()
+  if (!t) return { ageNumber: null, ageRaw: '' }
+
+  // Prefer "<n> year(s) old" / "<n> yo" / "<n>-year-old" forms — least ambiguous.
+  const explicit = t.match(/\b(\d{1,3})\s*(?:-?\s*year[s]?(?:\s*-?\s*old)?|y\/?o|yo)\b/i)
+  if (explicit) {
+    const n = parseInt(explicit[1], 10)
+    if (n >= 0 && n < 120) return { ageNumber: n, ageRaw: `${n}` }
+  }
+
+  // Fallback: first standalone integer in the string within plausible age range.
+  const generic = t.match(/(?<!\d)(\d{1,3})(?!\d)/)
+  if (generic) {
+    const n = parseInt(generic[1], 10)
+    if (n >= 0 && n < 120) return { ageNumber: n, ageRaw: `${n}` }
+  }
+  return { ageNumber: null, ageRaw: '' }
+}
+
+/**
+ * Canonicalize free-form sex/gender input. Returns canonical label and the original phrase
+ * so the brief can fall back to the patient's own wording when our taxonomy doesn't fit.
+ */
+function extractSex(text: string): { sex: string; sexRaw: string } {
+  const t = ` ${lower(text)} `
+  if (/\bnon[-\s]?binary\b|\benby\b|\bnb\b/.test(t)) return { sex: 'non-binary', sexRaw: text.trim() }
+  if (/\b(?:trans(?:gender)?|intersex|other|prefer not)\b/.test(t)) {
+    return { sex: 'other', sexRaw: text.trim() }
+  }
+  if (/\b(?:female|woman|girl|f)\b/.test(t)) return { sex: 'female', sexRaw: text.trim() }
+  if (/\b(?:male|man|boy|m)\b/.test(t)) return { sex: 'male', sexRaw: text.trim() }
+  return { sex: '', sexRaw: '' }
+}
+
+/**
+ * Heuristic name extraction. Strips age/sex tokens and digits, then takes the leftmost run
+ * of letters / hyphens. Empty string when nothing namelike remains (e.g. "34, female").
+ */
+function extractName(text: string): string {
+  let t = text.trim()
+  if (!t) return ''
+  if (/^(skip|none|no|n\/a|na|prefer not)\b/i.test(t)) return ''
+
+  t = t.replace(/\b\d{1,3}\s*(?:-?\s*year[s]?(?:\s*-?\s*old)?|y\/?o|yo)\b/gi, ' ')
+  t = t.replace(/\b\d+\b/g, ' ')
+  t = t.replace(
+    /\b(?:female|woman|girl|male|man|boy|non[-\s]?binary|enby|nb|trans(?:gender)?|intersex|other|prefer not to say|prefer not|m|f)\b/gi,
+    ' ',
+  )
+  t = t
+    .replace(/\b(?:i'?m|i am|my name is|name is|name:|im|hi|hello|this is)\b/gi, ' ')
+    .replace(/[,;:]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const m = t.match(/[A-Za-z][A-Za-z'.\-]*(?:\s+[A-Za-z][A-Za-z'.\-]*){0,3}/)
+  if (!m) return ''
+  // Title-case each word so "jane k" → "Jane K".
+  return m[0]
+    .split(/\s+/)
+    .map((w) => (w.length ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+    .join(' ')
+    .slice(0, 60)
+}
+
+export function extractDemographics(text: string): Demographics {
+  const { ageNumber, ageRaw } = extractAgeYears(text)
+  const { sex, sexRaw } = extractSex(text)
+  const name = extractName(text)
+  return { name, ageNumber, ageRaw, sex, sexRaw }
+}
+
+export function createEmptyDemographics(): Demographics {
+  return { name: '', ageRaw: '', ageNumber: null, sex: '', sexRaw: '' }
+}
 
 /**
  * Heuristic theme for tailoring ROS questions.
@@ -67,6 +155,10 @@ export function applyStepToState(
   const h = state.hpi
 
   switch (step) {
+    case 'personal_info': {
+      state.demographics = extractDemographics(t)
+      break
+    }
     case 'cc': {
       h.chiefComplaint = trimSentence(t, 300)
       h.theme = inferChiefComplaintTheme(t)
@@ -138,8 +230,13 @@ export function applyStepToState(
     case 'ros_general': {
       const line = state.ros[2]
       if (line) {
-        if (lower(t).includes('no') && lower(t).split(/\s+/).length < 12) {
-          line.negatives.push('Constitutional/constitutional symptoms largely denied: ' + trimSentence(t, 200))
+        const yn = lower(t).trim()
+        // Only treat as a blanket denial when the reply STARTS with a negation
+        // word. Earlier code matched any "no" substring, which mis-classified
+        // "I noticed nausea" as a denial.
+        const startsWithDenial = /^(n|no|nope|negative|none|deny|denies|nothing)\b/.test(yn)
+        if (startsWithDenial && yn.split(/\s+/).length < 12) {
+          line.negatives.push('Constitutional symptoms largely denied: ' + trimSentence(t, 200))
         } else {
           line.positives.push(trimSentence(t, 200))
         }
@@ -243,6 +340,7 @@ export function createEmptyHpiState(): HpiState {
 
 export function createEmptyIntakeState(): IntakeState {
   return {
+    demographics: createEmptyDemographics(),
     hpi: createEmptyHpiState(),
     redFlags: '',
     ros: [],

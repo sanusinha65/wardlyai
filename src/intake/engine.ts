@@ -20,7 +20,7 @@ export type { IntakeSession } from './types'
 const WELCOME_TEXT = [
   "Hi — I’m a **pre-visit intake assistant** (this is a simulation, not emergency care; call 911 if you have a medical emergency).",
   "I’ll ask a few focused questions so your clinician can see a **structured brief (CC, HPI, ROS)** at the end.",
-  "**In one or two sentences, what is the main reason for your visit today?** (Chief complaint.)",
+  "First, can you share **your age and sex (or gender)** — and optionally a name or initials? For example: *“Jane K, 34, female”* or just *“34, male.”*",
 ].join('\n\n')
 
 function nextOf(step: IntakeStep): IntakeStep {
@@ -31,6 +31,10 @@ function nextOf(step: IntakeStep): IntakeStep {
 
 function stepQuestion(step: IntakeStep, intake: IntakeState): string {
   switch (step) {
+    case 'personal_info':
+      return 'Could you share **your age and sex (or gender)**, plus an optional name or initials? (e.g. “Jane K, 34, female”.)'
+    case 'cc':
+      return '**In one or two sentences, what is the main reason for your visit today?** (Chief complaint.)'
     case 'onset':
       return '**When** did this start? (e.g. sudden vs gradual, and roughly what day or time if you know.)'
     case 'duration':
@@ -89,7 +93,7 @@ export function createInitialSession(): IntakeSession {
   const m: Message = { id: newId(), role: 'agent', content: WELCOME_TEXT, ts: Date.now() }
   return {
     messages: [m],
-    step: 'cc',
+    step: 'personal_info',
     intake: createEmptyIntakeState(),
     complete: false,
     brief: null,

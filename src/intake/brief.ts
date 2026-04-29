@@ -1,7 +1,31 @@
-import type { ClinicalBrief, IntakeState } from './types'
+import type { ClinicalBrief, Demographics, IntakeState } from './types'
 
 function joinOrNA(parts: (string | undefined | null)[], sep = ' '): string {
   return parts.filter((p) => p && String(p).trim().length > 0).join(sep).trim() || 'Not elicited'
+}
+
+/** Pretty label for sex/gender that prefers the patient's own phrasing when set. */
+function describeSex(d: Demographics): string {
+  if (d.sex && d.sex !== 'other') return d.sex
+  if (d.sexRaw) return d.sexRaw
+  return ''
+}
+
+/** Build the standard clinical one-liner: "Pt is a 34-year-old female presenting with X." */
+export function buildLeadSentence(s: IntakeState): string {
+  const d = s.demographics
+  const cc = s.hpi.chiefComplaint.trim()
+  if (!cc) return ''
+
+  const subject = d.name ? d.name : 'Patient'
+  const ageStr = d.ageNumber != null ? `${d.ageNumber}-year-old` : ''
+  const sexStr = describeSex(d)
+  const desc = [ageStr, sexStr].filter(Boolean).join(' ').trim()
+
+  if (desc) {
+    return `${subject} is a ${desc} presenting with: ${cc}.`
+  }
+  return `${subject} presents for: ${cc}.`
 }
 
 /**
@@ -9,9 +33,10 @@ function joinOrNA(parts: (string | undefined | null)[], sep = ' '): string {
  */
 function buildHpiParagraph(s: IntakeState): string {
   const h = s.hpi
+  const lead = buildLeadSentence(s) || (h.chiefComplaint ? `Patient presents for: ${h.chiefComplaint}.` : '')
   const s1 = joinOrNA(
     [
-      h.chiefComplaint && `Patient presents for: ${h.chiefComplaint}.`,
+      lead || null,
       h.onset && `Onset ${h.onset}.`,
       h.duration && `Duration ${h.duration}.`,
     ],
