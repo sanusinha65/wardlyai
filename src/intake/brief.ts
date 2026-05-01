@@ -1,9 +1,5 @@
 import type { ClinicalBrief, Demographics, IntakeState } from './types'
 
-function joinOrNA(parts: (string | undefined | null)[], sep = ' '): string {
-  return parts.filter((p) => p && String(p).trim().length > 0).join(sep).trim() || 'Not elicited'
-}
-
 /** Pretty label for sex/gender that prefers the patient's own phrasing when set. */
 function describeSex(d: Demographics): string {
   if (d.sex && d.sex !== 'other') return d.sex
@@ -29,49 +25,40 @@ export function buildLeadSentence(s: IntakeState): string {
 }
 
 /**
- * Produces a concise clinician-oriented paragraph for HPI.
+ * Discrete HPI lines for UI (bullets) and plain-text export (joined with blank lines).
  */
-function buildHpiParagraph(s: IntakeState): string {
+export function buildHpiLines(s: IntakeState): string[] {
   const h = s.hpi
-  const lead = buildLeadSentence(s) || (h.chiefComplaint ? `Patient presents for: ${h.chiefComplaint}.` : '')
-  const s1 = joinOrNA(
-    [
-      lead || null,
-      h.onset && `Onset ${h.onset}.`,
-      h.duration && `Duration ${h.duration}.`,
-    ],
-    ' ',
-  )
-  const s2 = joinOrNA(
-    [
-      h.severity && `Severity ${h.severity}.`,
-      h.location && `Location / radiation: ${h.location}.`,
-      h.quality && `Character: ${h.quality}.`,
-    ],
-    ' ',
-  )
-  const s3 = joinOrNA(
-    [
-      h.modifiers && `Modifying factors: ${h.modifiers}.`,
-      h.associatedSymptoms && `Associated symptoms: ${h.associatedSymptoms}.`,
-    ],
-    ' ',
-  )
-  const s4 = s.redFlags
-    ? `Triage: ${s.redFlags}`
-    : 'Triage: (not recorded)'
-  const s5 = s.meds
-    ? `Meds: ${s.meds}.`
-    : 'Meds: (not elicited).'
-  const s6 = s.allergies
-    ? `Allergies: ${s.allergies}.`
-    : 'Allergies: (not elicited).'
-  const s7 = s.otherConcerns && s.otherConcerns !== 'None elicited' ? `Additional: ${s.otherConcerns}.` : ''
+  const lines: string[] = []
 
-  return [s1, s2, s3, s4, s5, s6, s7]
-    .map((p) => p?.trim())
-    .filter((p) => p && p.length > 0)
-    .join(' ')
+  const lead =
+    buildLeadSentence(s).trim() ||
+    (h.chiefComplaint.trim() ? `Patient presents for: ${h.chiefComplaint.trim()}.` : '')
+  if (lead) lines.push(lead)
+
+  if (h.onset.trim()) lines.push(`Onset ${h.onset.trim()}.`)
+  if (h.duration.trim()) lines.push(`Duration ${h.duration.trim()}.`)
+  if (h.severity.trim()) lines.push(`Severity ${h.severity.trim()}.`)
+  if (h.location.trim()) lines.push(`Location / radiation: ${h.location.trim()}.`)
+  if (h.quality.trim()) lines.push(`Character: ${h.quality.trim()}.`)
+  if (h.modifiers.trim()) lines.push(`Modifying factors: ${h.modifiers.trim()}.`)
+  if (h.associatedSymptoms.trim()) lines.push(`Associated symptoms: ${h.associatedSymptoms.trim()}.`)
+
+  lines.push(s.redFlags.trim() ? `Triage: ${s.redFlags.trim()}` : 'Triage: (not recorded)')
+
+  lines.push(s.meds.trim() ? `Meds: ${s.meds.trim()}.` : 'Meds: (not elicited).')
+  lines.push(s.allergies.trim() ? `Allergies: ${s.allergies.trim()}.` : 'Allergies: (not elicited).')
+
+  const other = s.otherConcerns.trim()
+  if (other && other !== 'None elicited') lines.push(`Additional: ${other}.`)
+
+  return lines
+}
+
+/** Plain HPI for clipboard, Gemini, and any consumer expecting one string. */
+function buildHpiParagraph(s: IntakeState): string {
+  const lines = buildHpiLines(s)
+  return lines.length > 0 ? lines.join('\n\n') : 'Not elicited'
 }
 
 /**
@@ -102,7 +89,7 @@ function buildRosText(s: IntakeState): string {
     const neg = r.negatives.length
       ? `Negative/denies: ${r.negatives.join('; ')}.`
       : 'Negative/denies: (none explicitly elicited in this system).'
-    parts.push(`**${r.system}** — ${pos} ${neg}`)
+    parts.push(`**${r.system}** - ${pos} ${neg}`)
   }
   return parts.join('\n\n')
 }

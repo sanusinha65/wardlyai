@@ -9,7 +9,7 @@
   box-shadow: var(--shadow-shell);
 }
 
-/* —— Header —— */
+/* -- Header -- */
 .app__header {
   flex-shrink: 0;
   min-height: 64px;
@@ -121,7 +121,7 @@
   flex-shrink: 0;
 }
 
-/* —— Segmented progress —— */
+/* -- Segmented progress -- */
 .app__progressRow {
   flex-shrink: 0;
   display: grid;
@@ -191,7 +191,7 @@
   background: var(--progress-segment-idle);
 }
 
-/* —— Layout —— */
+/* -- Layout -- */
 .app__layout {
   --brief-w: 400px;
   flex: 1;
@@ -287,7 +287,7 @@
   }
 }
 
-/* —— Chat —— */
+/* -- Chat -- */
 .app__chat {
   display: flex;
   flex-direction: column;
@@ -307,7 +307,7 @@
   scroll-behavior: smooth;
 }
 
-/* —— Bubbles —— */
+/* -- Bubbles -- */
 .bubble {
   max-width: min(100%, 42rem);
   display: flex;
@@ -496,7 +496,7 @@
   text-align: right;
 }
 
-/* —— Composer —— */
+/* -- Composer -- */
 .app__composer {
   flex-shrink: 0;
   padding: 0.85rem 1.25rem 1.25rem;
@@ -600,7 +600,7 @@
   cursor: not-allowed;
 }
 
-/* —— Brief panel —— */
+/* -- Brief panel -- */
 .app__brief {
   display: flex;
   flex-direction: column;
@@ -805,6 +805,24 @@
 .briefCard__p--muted {
   color: var(--text-muted);
   font-style: italic;
+}
+
+.briefHpiList {
+  margin: 0;
+  padding-left: 1.2rem;
+  list-style-type: disc;
+}
+
+.briefHpiList li {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  margin-bottom: 0.45rem;
+  padding-left: 0.15rem;
+}
+
+.briefHpiList li:last-child {
+  margin-bottom: 0;
 }
 
 .hpiBuilder {
@@ -1095,8 +1113,8 @@
   box-sizing: border-box;
 }
 
-/* —— Buttons —— */
-/* Global * { padding: 0 } strips native button padding — set explicitly or label glyphs clip */
+/* -- Buttons -- */
+/* Global * { padding: 0 } strips native button padding - set explicitly or label glyphs clip */
 .btn {
   display: inline-flex;
   align-items: center;

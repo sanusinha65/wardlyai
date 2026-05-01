@@ -1,4 +1,4 @@
-/* Wardly — semantic tokens (light default + dark / Hume-inspired) */
+/* Wardly - semantic tokens (light default + dark / Hume-inspired) */
 
 :root {
   --bg-primary: #ffffff;
@@ -176,7 +176,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Dark — elevated surfaces, soft violet/blue ambient glow (Hume-adjacent) */
+/* Dark - elevated surfaces, soft violet/blue ambient glow (Hume-adjacent) */
 [data-theme='dark'] {
   --bg-primary: #09090b;
   --bg-secondary: #0c0c0e;

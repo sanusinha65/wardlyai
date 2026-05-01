@@ -8,19 +8,19 @@ import { INTAKE_STEPS } from './intake/types'
 export const RESPIRATORY_DEMO_REPLIES: string[] = [
   'Jane K, 34, female.',
   'A dry cough, sore throat, and low fever for a few days.',
-  'It started about 3 days ago — I woke up with a scratchy throat, cough came the same day.',
+  'It started about 3 days ago - I woke up with a scratchy throat, cough came the same day.',
   'It’s been about 3 days now; worse in the evening.',
   'Maybe a 5 out of 10, mostly the cough and throat bother me; fever comes and goes.',
   'Throat, chest with coughing; no one-sided leg swelling.',
   'Scratchy throat, dry/hacking cough; chest feels a bit irritated, not stabbing pain.',
   'A little better with rest, warm tea, honey; worse when lying flat at night.',
   'Low-grade fevers, chills on/off, runny nose; no vomiting; breathing is fine when I’m not coughing.',
-  'No — no chest pain like pressure, no real shortness of breath, no weakness on one side, and not the worst headache ever.',
+  'No - no chest pain like pressure, no real shortness of breath, no weakness on one side, and not the worst headache ever.',
   'A bit of sinus pressure, no significant ear pain.',
   'No sputum with blood, no very bad pleuritic pain, no one sick at home on a trip; no recent travel I’m worried about.',
   'A little fatigued; appetite is a bit down; I haven’t checked my weight, no night sweats.',
-  'Ibuprofen a couple times, vitamin C, a nightly melatonin — no antibiotics.',
-  'Penicillin — rash; otherwise NKDA I think.',
+  'Ibuprofen a couple times, vitamin C, a nightly melatonin - no antibiotics.',
+  'Penicillin - rash; otherwise NKDA I think.',
   'I’m mostly worried I’ll get other people sick at work, but I’ve been home.',
 ]
 

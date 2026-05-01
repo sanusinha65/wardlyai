@@ -1,16 +1,16 @@
-# Wardly — pre-visit clinical intake (take-home)
+# Wardly - pre-visit clinical intake (take-home)
 
 A **web chat** simulation that runs a **pre-visit clinical intake** and produces a **clinician-facing brief** with:
 
-- **Patient demographics** — name (optional), age, and sex/gender captured up-front; rendered as a chip in the brief panel and as the standard one-liner lead in the HPI ("Patient is a 34-year-old female presenting with…")
-- **CC** — chief complaint
-- **HPI** — history of present illness (narrative from the gathered fields)
-- **ROS** — review of systems (grouped by system with positives/negatives as elicited)
-- **Live brief** — CC / HPI / ROS panels **update as you chat** (before intake completes)
-- **Clinical insights** — rule-based urgency, differentials, and workup reminders (after chief complaint is captured)
-- **Voice input** — Web Speech API: mic asks for **microphone permission** first; **Stop** ends recognition; language via `VITE_SPEECH_LANG` or browser locale
-- **Gemini (optional)** — when `VITE_GEMINI_API_KEY` is set (free tier via [Google AI Studio](https://aistudio.google.com/)), the **Insights** tab auto-generates a supplementary AI bullet list once the brief is complete (with a manual *Regenerate* control)
-- **Export** — copy the full brief to clipboard or download it as a `.txt` file from the right panel footer
+- **Patient demographics** - name (optional), age, and sex/gender captured up-front; rendered as a chip in the brief panel and as the standard one-liner lead in the HPI ("Patient is a 34-year-old female presenting with…")
+- **CC** - chief complaint
+- **HPI** - history of present illness (narrative from the gathered fields)
+- **ROS** - review of systems (grouped by system with positives/negatives as elicited)
+- **Live brief** - CC / HPI / ROS panels **update as you chat** (before intake completes)
+- **Clinical insights** - rule-based urgency, differentials, and workup reminders (after chief complaint is captured)
+- **Voice input** - Web Speech API: mic asks for **microphone permission** first; **Stop** ends recognition; language via `VITE_SPEECH_LANG` or browser locale
+- **Gemini (optional)** - when `VITE_GEMINI_API_KEY` is set (free tier via [Google AI Studio](https://aistudio.google.com/)), the **Insights** tab auto-generates a supplementary AI bullet list once the brief is complete (with a manual *Regenerate* control)
+- **Export** - copy the full brief to clipboard or download it as a `.txt` file from the right panel footer
 
 Formal exercise requirements are summarized in [ASSIGNMENT_REQUIREMENTS.md](ASSIGNMENT_REQUIREMENTS.md).
 
@@ -20,13 +20,13 @@ Copy [.env.example](.env.example) to `.env` (not committed):
 
 | Variable | Purpose |
 |----------|---------|
-| `VITE_GEMINI_API_KEY` | Enables optional Gemini bullet points in Insights (browser exposes this string—use only for local demos) |
+| `VITE_GEMINI_API_KEY` | Enables optional Gemini bullet points in Insights (browser exposes this string-use only for local demos) |
 | `VITE_GEMINI_MODEL` | Optional model id (default `gemini-1.5-flash`) |
 | `VITE_SPEECH_LANG` | BCP-47 tag for speech recognition, e.g. `en-IN`, `hi-IN` (default: browser language) |
 
 ### If voice typing shows nothing
 
-Use **Chrome or Edge** on desktop, **HTTPS or localhost**, and allow **microphone** when prompted. Recognition uses **continuous** capture with accumulated **final** transcripts (fixed from the old single-shot behavior). Chrome relies on **Google’s speech service**—a network error will block results. Set **`VITE_SPEECH_LANG`** if your accent/language differs from the browser default.
+Use **Chrome or Edge** on desktop, **HTTPS or localhost**, and allow **microphone** when prompted. Recognition uses **continuous** capture with accumulated **final** transcripts (fixed from the old single-shot behavior). Chrome relies on **Google’s speech service**-a network error will block results. Set **`VITE_SPEECH_LANG`** if your accent/language differs from the browser default.
 
 ## Why mock-first (no API keys)
 
@@ -52,7 +52,7 @@ npm run preview   # optional, serve the built app
 
 ## 5-minute Loom script (suggested)
 
-1. **Intro (30s):** Problem — pre-visit data is noisy; we want a structured handoff (CC, HPI, ROS).
+1. **Intro (30s):** Problem - pre-visit data is noisy; we want a structured handoff (CC, HPI, ROS).
 2. **Start dev server, show the UI (60s):** Intake on the left, **structured brief** on the right.
 3. **Run one full intake (2–2.5 min):**  
    - Click **Sample Data** a few times to show speed; optionally use **voice** (mic) for one reply in a supported browser.  

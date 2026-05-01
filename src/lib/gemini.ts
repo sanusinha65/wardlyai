@@ -62,12 +62,12 @@ export async function generateGeminiClinicalInsights(brief: ClinicalBrief): Prom
   const genAI = new GoogleGenerativeAI(key)
   const model = genAI.getGenerativeModel({ model: getGeminiModelName() })
 
-  const prompt = `You assist clinicians preparing for a visit. This is a simulated intake exercise—not a real patient and not for diagnosis.
+  const prompt = `You assist clinicians preparing for a visit. This is a simulated intake exercise-not a real patient and not for diagnosis.
 
 Read the brief below and output ONLY 4–6 bullet lines. Rules:
 - No title, preamble, or closing (do not write "Here are…" or similar).
 - Each line must be exactly: a hyphen, a space, then one short consideration (one line per bullet).
-- Do not use asterisks, numbers, or markdown—only plain "- " lines.
+- Do not use asterisks, numbers, or markdown-only plain "- " lines.
 - Neutral language: documentation checks, in-office verification questions, or safety-net themes. Do not diagnose, prescribe, or give emergency instructions.
 
 Chief complaint:

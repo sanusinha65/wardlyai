@@ -18,9 +18,9 @@ import {
 export type { IntakeSession } from './types'
 
 const WELCOME_TEXT = [
-  "Hi — I’m a **pre-visit intake assistant** (this is a simulation, not emergency care; call 911 if you have a medical emergency).",
+  "Hi - I’m a **pre-visit intake assistant** (this is a simulation, not emergency care; call 911 if you have a medical emergency).",
   "I’ll ask a few focused questions so your clinician can see a **structured brief (CC, HPI, ROS)** at the end.",
-  "First, can you share **your age and sex (or gender)** — and optionally a name or initials? For example: *“Jane K, 34, female”* or just *“34, male.”*",
+  "First, can you share **your age and sex (or gender)** - and optionally a name or initials? For example: *“Jane K, 34, female”* or just *“34, male.”*",
 ].join('\n\n')
 
 function nextOf(step: IntakeStep): IntakeStep {
@@ -59,21 +59,21 @@ function stepQuestion(step: IntakeStep, intake: IntakeState): string {
       if (!l) {
         return '**Focused review (part 1):** Any other symptoms in the problem area? (If none, you can say “no”).'
       }
-      return `**Review of systems (focused) — 1/2** — considering your chief complaint, any of the following: *${l.system}*? (Yes/No, or a short list.)`
+      return `**Review of systems (focused) - 1/2** - considering your chief complaint, any of the following: *${l.system}*? (Yes/No, or a short list.)`
     }
     case 'ros_focus_2': {
       const l = intake.ros[1]
       if (!l) {
         return '**Focused review (part 2):** anything else?'
       }
-      return `**Review of systems (focused) — 2/2** — *${l.system}*? (Yes/No, or a short list.)`
+      return `**Review of systems (focused) - 2/2** - *${l.system}*? (Yes/No, or a short list.)`
     }
     case 'ros_general': {
       const l = intake.ros[2]
       if (!l) {
         return '**General review:** any fevers, chills, night sweats, weight change, fatigue, or appetite change? (Brief.)'
       }
-      return `**General review of systems** — *${l.system}*? (You can also say you’re unsure or say “no.”)`
+      return `**General review of systems** - *${l.system}*? (You can also say you’re unsure or say “no.”)`
     }
     case 'meds':
       return '**What medications** do you take (including over-the-counter and supplements)? If none, say "none."'
@@ -135,7 +135,7 @@ export function submitUserMessage(
   if (newStep !== 'complete') {
     const q = stepQuestion(newStep, intake)
     if (q) {
-      agentParts.push(`Thanks — I’ve noted that.\n\n${q}`)
+      agentParts.push(`Thanks - I’ve noted that.\n\n${q}`)
     }
   } else {
     agentParts.push(
@@ -163,7 +163,7 @@ export function submitUserMessage(
 }
 
 /**
- * Recompute brief from current intake (e.g. after “reset” not needed) — for exports/tests.
+ * Recompute brief from current intake (e.g. after “reset” not needed) - for exports/tests.
  */
 export function computeBrief(s: IntakeState): ClinicalBrief {
   return buildClinicalBrief(s)

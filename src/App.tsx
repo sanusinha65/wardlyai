@@ -384,7 +384,7 @@ function App() {
             await new Promise((res) => window.setTimeout(res, GEMINI_RETRY_BASE_MS * attempt))
             continue
           }
-          // Final attempt failed — keep prior text (if any) so the user still
+          // Final attempt failed - keep prior text (if any) so the user still
           // sees the last good analysis. Do NOT surface the raw API error.
           if (import.meta.env.DEV) {
             console.warn('[gemini] giving up after retries:', e)
@@ -481,13 +481,13 @@ function App() {
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         if (event.error === 'aborted') return
         if (event.error === 'no-speech') {
-          setVoiceError('No speech detected—try again or check your mic.')
+          setVoiceError('No speech detected-try again or check your mic.')
         } else if (event.error === 'not-allowed') {
           setVoiceError('Speech recognition blocked. Allow microphone in the browser address bar.')
         } else if (event.error === 'network') {
           if (speechNetworkAttemptRef.current < 1) {
             speechNetworkAttemptRef.current += 1
-            setVoiceError('Could not reach Google speech servers — retrying once in about 2 seconds…')
+            setVoiceError('Could not reach Google speech servers - retrying once in about 2 seconds…')
             speechRetryTimerRef.current = window.setTimeout(() => {
               speechRetryTimerRef.current = null
               void startVoiceInputRef.current({ isAutoNetworkRetry: true })
@@ -496,7 +496,7 @@ function App() {
             return
           }
           setVoiceError(
-            'Chrome sends your audio to Google for Web Speech. This failed after a retry. Try another Wi-Fi or cellular hotspot, turn VPN off briefly, or allow your network/firewall to reach Google. Corporate proxies often block this API — use the keyboard, Edge on another network, or host the app on HTTPS localhost.',
+            'Chrome sends your audio to Google for Web Speech. This failed after a retry. Try another Wi-Fi or cellular hotspot, turn VPN off briefly, or allow your network/firewall to reach Google. Corporate proxies often block this API - use the keyboard, Edge on another network, or host the app on HTTPS localhost.',
           )
         } else {
           setVoiceError(event.message || `Speech error: ${event.error}`)
@@ -859,7 +859,15 @@ function App() {
                     {showFinalBrief ? 'History of present illness' : 'History of present illness (building)'}
                   </h3>
                   {showFinalBrief && session.brief ? (
-                    <p className="briefCard__p">{session.brief.hpi}</p>
+                    <ul className="briefHpiList">
+                      {session.brief.hpi
+                        .split(/\n\n+/)
+                        .map((l) => l.trim())
+                        .filter(Boolean)
+                        .map((line, i) => (
+                          <li key={i}>{line}</li>
+                        ))}
+                    </ul>
                   ) : (
                     <div className="hpiBuilder">
                       {lb.hpiFragments.onset && (
@@ -971,8 +979,7 @@ function App() {
                     <div className="briefCard briefCard--gemini briefCard--animate">
                       <h3 className="briefCard__h">AI analysis</h3>
                       <p className="briefCard__p briefCard__p--muted geminiDisclaimer">
-                        Generated automatically via Google Gemini when the brief is complete. Supplementary ideas
-                        only—not a diagnosis. Do not use API keys in production frontends without a backend proxy.
+                        Generated automatically via Google Gemini when the brief is complete.
                       </p>
                       {geminiAiLoading ? (
                         <p className="aiAnalysisStatus aiAnalysisStatus--pending" role="status">
@@ -1069,14 +1076,27 @@ function App() {
   )
 }
 
+/**
+ * Renders lightweight inline emphasis: `**bold**` and `*bold*` (both use .clinical-em).
+ * Markdown uses `*` for italic, but agent copy uses single asterisks for short emphasis;
+ * we treat paired single asterisks like `**` for readability in bubbles.
+ */
 function formatInlineEmphasis(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g)
   return parts.map((part, i) => {
-    const m = part.match(/^\*\*([^*]+)\*\*$/)
-    if (m) {
+    const bold = part.match(/^\*\*([^*]+)\*\*$/)
+    if (bold) {
       return (
         <span key={i} className="clinical-em">
-          {m[1]}
+          {bold[1]}
+        </span>
+      )
+    }
+    const single = part.match(/^\*([^*]+)\*$/)
+    if (single) {
+      return (
+        <span key={i} className="clinical-em">
+          {single[1]}
         </span>
       )
     }

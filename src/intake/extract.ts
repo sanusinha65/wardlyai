@@ -17,7 +17,7 @@ function extractAgeYears(text: string): { ageNumber: number | null; ageRaw: stri
   const t = text.trim()
   if (!t) return { ageNumber: null, ageRaw: '' }
 
-  // Prefer "<n> year(s) old" / "<n> yo" / "<n>-year-old" forms — least ambiguous.
+  // Prefer "<n> year(s) old" / "<n> yo" / "<n>-year-old" forms - least ambiguous.
   const explicit = t.match(/\b(\d{1,3})\s*(?:-?\s*year[s]?(?:\s*-?\s*old)?|y\/?o|yo)\b/i)
   if (explicit) {
     const n = parseInt(explicit[1], 10)
