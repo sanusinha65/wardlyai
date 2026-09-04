@@ -1,0 +1,16 @@
+node_modules
+dist
+dist-ssr
+.git
+.github
+.cursor
+.vscode
+.idea
+.env
+.env.*
+!.env.example
+*.md
+*.log
+npm-debug.log*
+.DS_Store
+coverage

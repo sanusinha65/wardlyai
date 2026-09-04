@@ -1,17 +1,16 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { ClinicalBrief } from '../intake/types'
+import { readAppEnv } from './runtimeEnv'
 
 /** Free-tier friendly; override with VITE_GEMINI_MODEL if needed */
 const DEFAULT_MODEL = 'gemini-2.5-flash'
 
 export function getGeminiApiKey(): string | undefined {
-  const k = import.meta.env.VITE_GEMINI_API_KEY
-  return typeof k === 'string' && k.trim() ? k.trim() : undefined
+  return readAppEnv('VITE_GEMINI_API_KEY')
 }
 
 export function getGeminiModelName(): string {
-  const m = import.meta.env.VITE_GEMINI_MODEL
-  return typeof m === 'string' && m.trim() ? m.trim() : DEFAULT_MODEL
+  return readAppEnv('VITE_GEMINI_MODEL') ?? DEFAULT_MODEL
 }
 
 /** Strip model intro lines and markdown so UI shows clean "- …" bullets only */

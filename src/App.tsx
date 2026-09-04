@@ -5,15 +5,16 @@ import { generateInsights } from './intake/insights'
 import { hasAnyHpiFragments } from './intake/liveBrief'
 import { INTAKE_STEPS, STEP_LABEL, stepIndex, type IntakeStep } from './intake/types'
 import {
-  generateGeminiClinicalInsights,
-  getGeminiApiKey,
+    generateGeminiClinicalInsights,
+    getGeminiApiKey,
 } from './lib/gemini'
+import { readAppEnv } from './lib/runtimeEnv'
 import { useTheme } from './useTheme'
 
 const PROGRESS_SEGMENTS = INTAKE_STEPS.length - 1
 
 function speechRecognitionLang(): string {
-  const fromEnv = import.meta.env.VITE_SPEECH_LANG?.trim()
+  const fromEnv = readAppEnv('VITE_SPEECH_LANG')
   if (fromEnv) return fromEnv
   if (typeof navigator !== 'undefined' && navigator.language) {
     return navigator.language.replace('_', '-')

@@ -11,3 +11,11 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+interface Window {
+  __WARDLY_ENV__?: {
+    VITE_GEMINI_API_KEY?: string
+    VITE_GEMINI_MODEL?: string
+    VITE_SPEECH_LANG?: string
+  }
+}

@@ -34,6 +34,21 @@ The conversation flow, extraction, and brief generation are **deterministic** in
 
 ## Quick start
 
+**Docker (recommended)**
+
+```bash
+docker compose up --build
+```
+
+Open [http://localhost:8080](http://localhost:8080). Optional Gemini / speech settings are read from `.env` at container start (no rebuild needed when you change them).
+
+```bash
+docker build -t wardlyai .
+docker run --rm -p 8080:80 -e VITE_GEMINI_API_KEY=your_key wardlyai
+```
+
+**Local Node**
+
 ```bash
 npm install
 npm run dev
