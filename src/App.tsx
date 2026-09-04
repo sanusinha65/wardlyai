@@ -8,7 +8,6 @@ import {
   generateGeminiClinicalInsights,
   getGeminiApiKey,
 } from './lib/gemini'
-import { getSampleReplyForStep } from './samplePatients'
 import { useTheme } from './useTheme'
 
 const PROGRESS_SEGMENTS = INTAKE_STEPS.length - 1
@@ -541,11 +540,6 @@ function App() {
     setIsListening(false)
   }
 
-  const onInsertSample = () => {
-    const t = getSampleReplyForStep(session.step)
-    if (t) setInput(t)
-  }
-
   const briefPlainText = useMemo(() => {
     if (!session.brief) return ''
     const d = session.intake.demographics
@@ -594,7 +588,7 @@ function App() {
               <h1 className="app__title">
                 Wardly <span>Context Engine</span>
               </h1>
-              <span className="app__badge">Pre-visit Clinical Intake Simulation</span>
+              <span className="app__badge">Pre-visit Clinical Intake</span>
             </div>
           </div>
         </div>
@@ -611,14 +605,6 @@ function App() {
             aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {theme === 'dark' ? <Icons.Sun /> : <Icons.Moon />}
-          </button>
-          <button
-            type="button"
-            className="btn btn--outline"
-            onClick={onInsertSample}
-            disabled={session.complete}
-          >
-            Sample Data
           </button>
           <button type="button" className="btn btn--ghost" onClick={onReset}>
             <Icons.Reset /> Reset
@@ -661,7 +647,7 @@ function App() {
                     {m.id === firstAgentId && (
                       <p className="bubble__disclaimer" role="note">
                         <span aria-hidden>⚠ </span>
-                        This is a simulation, not emergency care. Call 911 for emergencies.
+                        This is not emergency care. Call 911 for emergencies.
                       </p>
                     )}
                     <AgentTypingContent
@@ -674,7 +660,7 @@ function App() {
                   </div>
                 ) : (
                   <>
-                    <div className="bubble__roleUser">Simulated Patient</div>
+                    <div className="bubble__roleUser">Patient</div>
                     <div className="bubble__content bubble__content--user">
                       {m.content.split('\n').map((line, i) => (
                         <p key={i}>{line.trim() ? formatInlineEmphasis(line) : '\u00a0'}</p>

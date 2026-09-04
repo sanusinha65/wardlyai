@@ -62,7 +62,7 @@ export async function generateGeminiClinicalInsights(brief: ClinicalBrief): Prom
   const genAI = new GoogleGenerativeAI(key)
   const model = genAI.getGenerativeModel({ model: getGeminiModelName() })
 
-  const prompt = `You assist clinicians preparing for a visit. This is a simulated intake exercise-not a real patient and not for diagnosis.
+  const prompt = `You assist clinicians preparing for a visit. Do not diagnose, prescribe, or treat this as emergency care.
 
 Read the brief below and output ONLY 4–6 bullet lines. Rules:
 - No title, preamble, or closing (do not write "Here are…" or similar).

@@ -18,7 +18,7 @@ import {
 export type { IntakeSession } from './types'
 
 const WELCOME_TEXT = [
-  "Hi - I’m a **pre-visit intake assistant** (this is a simulation, not emergency care; call 911 if you have a medical emergency).",
+  "Hi - I’m a **pre-visit intake assistant**. This is not emergency care; call 911 if you have a medical emergency.",
   "I’ll ask a few focused questions so your clinician can see a **structured brief (CC, HPI, ROS)** at the end.",
   "First, can you share **your age and sex (or gender)** - and optionally a name or initials? For example: *“Jane K, 34, female”* or just *“34, male.”*",
 ].join('\n\n')
